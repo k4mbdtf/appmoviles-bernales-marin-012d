@@ -1,5 +1,6 @@
 package com.paolicias.sweet.ui.screens
 
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -15,6 +16,7 @@ import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.Groups
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DatePicker
@@ -33,6 +35,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -61,6 +64,12 @@ fun ConfigurarEventoScreen(
     var errorHorario by remember { mutableStateOf<String?>(null) }
     var errorAsistentes by remember { mutableStateOf<String?>(null) }
     var errorObservaciones by remember { mutableStateOf<String?>(null) }
+
+    val tieneErrores = errorFecha != null || errorHorario != null || errorAsistentes != null || errorObservaciones != null
+    val colorBotonCotizar by animateColorAsState(
+        targetValue = if (tieneErrores) Color(0xFFC62828) else MaterialTheme.colorScheme.primary,
+        label = "colorBotonCotizar"
+    )
 
     if (mostrarDatePicker) {
         DatePickerDialog(
@@ -219,14 +228,16 @@ fun ConfigurarEventoScreen(
                         onNavigateNext()
                     }
                 },
+                colors = ButtonDefaults.buttonColors(containerColor = colorBotonCotizar),
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(50.dp)
             ) {
                 Text(
-                    text = "Ver Resumen de Cotización",
+                    text = if (tieneErrores) "Corrige los campos en rojo" else "Ver Resumen de Cotización",
                     style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White
                 )
             }
         }

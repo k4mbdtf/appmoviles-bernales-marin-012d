@@ -1,5 +1,6 @@
 package com.paolicias.sweet.ui.screens
 
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -15,6 +16,7 @@ import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Phone
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
@@ -27,6 +29,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -38,7 +41,6 @@ import com.paolicias.sweet.ui.components.CampoValidado
 fun LoginScreen(
     onNavigateNext: () -> Unit = {}
 ) {
-    // Valores de prueba iniciales para conexión posterior con ViewModel
     var nombre by remember { mutableStateOf("Camila Rojas") }
     var email by remember { mutableStateOf("camila.rojas@eventosatacama.cl") }
     var telefono by remember { mutableStateOf("+56987654321") }
@@ -48,6 +50,12 @@ fun LoginScreen(
     var errorEmail by remember { mutableStateOf<String?>(null) }
     var errorTelefono by remember { mutableStateOf<String?>(null) }
     var errorPassword by remember { mutableStateOf<String?>(null) }
+
+    val tieneErrores = errorNombre != null || errorEmail != null || errorTelefono != null || errorPassword != null
+    val colorBoton by animateColorAsState(
+        targetValue = if (tieneErrores) Color(0xFFC62828) else MaterialTheme.colorScheme.primary,
+        label = "colorBotonLogin"
+    )
 
     Surface(
         modifier = Modifier.fillMaxSize(),
@@ -163,14 +171,16 @@ fun LoginScreen(
                                 onNavigateNext()
                             }
                         },
+                        colors = ButtonDefaults.buttonColors(containerColor = colorBoton),
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(50.dp)
                     ) {
                         Text(
-                            text = "Ingresar",
+                            text = if (tieneErrores) "Revisa los campos marcados" else "Ingresar",
                             style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White
                         )
                     }
                 }

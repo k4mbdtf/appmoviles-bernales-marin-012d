@@ -1,5 +1,11 @@
 package com.paolicias.sweet.ui.components
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -12,6 +18,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -35,6 +42,10 @@ fun CampoValidado(
     trailingIcon: @Composable (() -> Unit)? = null
 ) {
     val hayError = error != null
+    val colorBorde by animateColorAsState(
+        targetValue = if (hayError) Color.Red else MaterialTheme.colorScheme.primary,
+        label = "animacionColorBorde"
+    )
 
     Column(modifier = modifier.fillMaxWidth()) {
         OutlinedTextField(
@@ -55,7 +66,7 @@ fun CampoValidado(
                     Icon(
                         imageVector = icono,
                         contentDescription = etiqueta,
-                        tint = MaterialTheme.colorScheme.primary
+                        tint = colorBorde
                     )
                 }
             },
@@ -67,7 +78,7 @@ fun CampoValidado(
             },
             keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
             colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = if (hayError) Color.Red else MaterialTheme.colorScheme.primary,
+                focusedBorderColor = colorBorde,
                 unfocusedBorderColor = if (hayError) Color.Red else MaterialTheme.colorScheme.outline,
                 errorBorderColor = Color.Red,
                 errorLabelColor = Color.Red,
@@ -76,9 +87,13 @@ fun CampoValidado(
             modifier = Modifier.fillMaxWidth()
         )
 
-        if (error != null) {
+        AnimatedVisibility(
+            visible = hayError,
+            enter = fadeIn() + expandVertically(),
+            exit = fadeOut() + shrinkVertically()
+        ) {
             Text(
-                text = error,
+                text = error ?: "",
                 color = Color.Red,
                 style = MaterialTheme.typography.bodySmall,
                 modifier = Modifier.padding(start = 16.dp, top = 4.dp)
