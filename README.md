@@ -61,13 +61,13 @@ El Repository aísla el origen de datos para migrar a una API REST (Retrofit + S
 
 ## Mockups
 
-Las capturas de las pantallas principales están en [`docs/mockups`](docs/mockups).
+Las capturas de las pantallas principales están en [`/mockups`](/mockups).
 
 ## Cómo ejecutar
 
 1. Clonar el repositorio:
 ```
-   git clone https://github.com/<usuario>/appmoviles-bernales-marin-012d.git
+   git clone https://github.com/k4mbdtf/appmoviles-bernales-marin-012d.git
 ```
 2. Abrir la carpeta **`PaoliciasSweet`** (no la raíz) en Android Studio.
 3. Esperar la sincronización de Gradle.
