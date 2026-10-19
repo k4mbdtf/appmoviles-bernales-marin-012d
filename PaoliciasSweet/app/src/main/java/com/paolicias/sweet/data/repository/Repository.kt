@@ -152,7 +152,7 @@ class Repository private constructor(db: AppDatabase) {
         }
     }
 
-    private fun imagen(semilla: String) = "https://picsum.photos/seed/$semilla/600/400"
+    private fun imagen(nombre: String) = "android.resource://com.paolicias.sweet/drawable/$nombre"
 
     private fun productosIniciales() = listOf(
         Producto(nombre = "Torta de mil hojas manjar", descripcion = "Clasica torta de 12 porciones con manjar casero y nueces.", precioBase = 24000, categoria = "Tortas", imagenUrl = imagen("milhojas")),
