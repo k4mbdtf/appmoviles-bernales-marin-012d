@@ -1,195 +1,147 @@
 package com.paolicias.sweet.ui.screens
 
-import androidx.compose.animation.animateColorAsState
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Cake
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Phone
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.navigation.NavController
-import com.paolicias.sweet.navigation.Rutas
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.paolicias.sweet.ui.components.CampoValidado
+import com.paolicias.sweet.viewmodel.LoginViewModel
 
 @Composable
 fun LoginScreen(
-    onNavigateNext: () -> Unit = {}
+    onLoginExitoso: (rol: String) -> Unit,
+    viewModel: LoginViewModel = viewModel()
 ) {
-    var nombre by remember { mutableStateOf("Camila Rojas") }
-    var email by remember { mutableStateOf("camila.rojas@eventosatacama.cl") }
-    var telefono by remember { mutableStateOf("+56987654321") }
-    var password by remember { mutableStateOf("paolicias2026") }
+    val state by viewModel.uiState.collectAsState()
+    var verPassword by rememberSaveable { mutableStateOf(false) }
 
-    var errorNombre by remember { mutableStateOf<String?>(null) }
-    var errorEmail by remember { mutableStateOf<String?>(null) }
-    var errorTelefono by remember { mutableStateOf<String?>(null) }
-    var errorPassword by remember { mutableStateOf<String?>(null) }
+    LaunchedEffect(state.usuario) {
+        state.usuario?.let {
+            onLoginExitoso(it.rol)
+            viewModel.consumirLogin()
+        }
+    }
 
-    val tieneErrores = errorNombre != null || errorEmail != null || errorTelefono != null || errorPassword != null
-    val colorBoton by animateColorAsState(
-        targetValue = if (tieneErrores) Color(0xFFC62828) else MaterialTheme.colorScheme.primary,
-        label = "colorBotonLogin"
-    )
-
-    Surface(
-        modifier = Modifier.fillMaxSize(),
-        color = MaterialTheme.colorScheme.background
-    ) {
+    Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
                 .padding(24.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
+            Spacer(Modifier.height(48.dp))
+            Icon(
+                Icons.Filled.Cake,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(72.dp)
+            )
+            Spacer(Modifier.height(8.dp))
             Text(
-                text = "Paolicias.Sweet",
-                style = MaterialTheme.typography.headlineLarge,
+                "Paolicias.Sweet",
+                style = MaterialTheme.typography.headlineMedium,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.primary
             )
             Text(
-                text = "Banquetería Corporativa y Pastelería Fina",
+                "Banquetería y pastelería · Vallenar",
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.secondary
+                color = MaterialTheme.colorScheme.onBackground
             )
+            Spacer(Modifier.height(32.dp))
 
-            Spacer(modifier = Modifier.height(24.dp))
-
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surface
-                ),
-                elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(20.dp)
-                ) {
-                    Text(
-                        text = "Acceso y Registro de Cliente",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    CampoValidado(
-                        valor = nombre,
-                        onCambio = {
-                            nombre = it
-                            errorNombre = if (it.isBlank()) "El nombre es obligatorio" else null
-                        },
-                        etiqueta = "Nombre Completo",
-                        error = errorNombre,
-                        icono = Icons.Default.Person
-                    )
-
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    CampoValidado(
-                        valor = email,
-                        onCambio = {
-                            email = it
-                            errorEmail = if (!it.contains("@")) "Ingresa un email válido" else null
-                        },
-                        etiqueta = "Correo Electrónico",
-                        error = errorEmail,
-                        icono = Icons.Default.Email,
-                        keyboardType = KeyboardType.Email
-                    )
-
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    CampoValidado(
-                        valor = telefono,
-                        onCambio = {
-                            telefono = it
-                            errorTelefono = if (it.length < 8) "Teléfono inválido (mínimo 8 dígitos)" else null
-                        },
-                        etiqueta = "Teléfono de Contacto",
-                        error = errorTelefono,
-                        icono = Icons.Default.Phone,
-                        keyboardType = KeyboardType.Phone
-                    )
-
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    CampoValidado(
-                        valor = password,
-                        onCambio = {
-                            password = it
-                            errorPassword = if (it.length < 6) "La contraseña debe tener al menos 6 caracteres" else null
-                        },
-                        etiqueta = "Contraseña",
-                        error = errorPassword,
-                        icono = Icons.Default.Lock,
-                        esPassword = true,
-                        keyboardType = KeyboardType.Password
-                    )
-
-                    Spacer(modifier = Modifier.height(24.dp))
-
-                    Button(
-                        onClick = {
-                            errorNombre = if (nombre.isBlank()) "El nombre es obligatorio" else null
-                            errorEmail = if (!email.contains("@")) "Ingresa un email válido" else null
-                            errorTelefono = if (telefono.length < 8) "Teléfono inválido (mínimo 8 dígitos)" else null
-                            errorPassword = if (password.length < 6) "La contraseña debe tener al menos 6 caracteres" else null
-
-                            if (errorNombre == null && errorEmail == null && errorTelefono == null && errorPassword == null) {
-                                onNavigateNext()
-                            }
-                        },
-                        colors = ButtonDefaults.buttonColors(containerColor = colorBoton),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(50.dp)
-                    ) {
-                        Text(
-                            text = if (tieneErrores) "Revisa los campos marcados" else "Ingresar",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = Color.White
+            CampoValidado(
+                valor = state.email,
+                onValorChange = viewModel::onEmailChange,
+                etiqueta = "Correo electrónico",
+                icono = Icons.Filled.Email,
+                error = state.emailError,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email, imeAction = ImeAction.Next)
+            )
+            Spacer(Modifier.height(8.dp))
+            CampoValidado(
+                valor = state.password,
+                onValorChange = viewModel::onPasswordChange,
+                etiqueta = "Contraseña",
+                icono = Icons.Filled.Lock,
+                error = state.passwordError,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = ImeAction.Done),
+                visualTransformation = if (verPassword) VisualTransformation.None else PasswordVisualTransformation(),
+                trailingIcon = {
+                    IconButton(onClick = { verPassword = !verPassword }) {
+                        Icon(
+                            if (verPassword) Icons.Filled.VisibilityOff else Icons.Filled.Visibility,
+                            contentDescription = if (verPassword) "Ocultar contraseña" else "Mostrar contraseña"
                         )
                     }
                 }
+            )
+
+            AnimatedVisibility(visible = state.errorGeneral != null) {
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 16.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer)
+                ) {
+                    Text(
+                        state.errorGeneral ?: "",
+                        modifier = Modifier.padding(12.dp),
+                        color = MaterialTheme.colorScheme.onErrorContainer
+                    )
+                }
             }
+
+            Spacer(Modifier.height(24.dp))
+            Button(
+                onClick = viewModel::iniciarSesion,
+                enabled = !state.cargando,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(52.dp)
+            ) {
+                AnimatedContent(targetState = state.cargando, label = "botonLogin") { cargando ->
+                    if (cargando) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(22.dp),
+                            strokeWidth = 2.dp,
+                            color = MaterialTheme.colorScheme.onPrimary
+                        )
+                    } else {
+                        Text("Ingresar")
+                    }
+                }
+            }
+
+            Spacer(Modifier.height(24.dp))
+            Text(
+                "Cuentas de prueba (datos sintéticos)\ncliente@demo.cl / cliente123\nadmin@paolicias.cl / admin123",
+                style = MaterialTheme.typography.bodySmall,
+                textAlign = TextAlign.Center,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
         }
     }
-}
-
-@Composable
-fun LoginScreen(navController: NavController) {
-    LoginScreen(onNavigateNext = { navController.navigate(Rutas.CATALOGO) })
 }

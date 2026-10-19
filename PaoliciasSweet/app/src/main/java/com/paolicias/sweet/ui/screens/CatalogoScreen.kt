@@ -1,183 +1,114 @@
 package com.paolicias.sweet.ui.screens
 
+import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Cake
-import androidx.compose.material.icons.filled.RestaurantMenu
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
+import androidx.compose.material.icons.automirrored.filled.Logout
+import androidx.compose.material.icons.filled.CalendarMonth
+import androidx.compose.material.icons.filled.Celebration
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.navigation.NavController
-import com.paolicias.sweet.navigation.Rutas
+import androidx.lifecycle.viewmodel.compose.viewModel
+import coil.compose.AsyncImage
+import com.paolicias.sweet.data.local.Producto
+import com.paolicias.sweet.util.Formato
+import com.paolicias.sweet.util.Sesion
+import com.paolicias.sweet.viewmodel.CatalogoViewModel
 
-data class ProductoCatalogo(
-    val id: Int,
-    val nombre: String,
-    val categoria: String,
-    val precio: String,
-    val esPasteleria: Boolean
-)
-
-private val listaProductosEjemplo = listOf(
-    ProductoCatalogo(
-        id = 1,
-        nombre = "Torta Personalizada Fondant 30 Porciones",
-        categoria = "Pastelería Fina",
-        precio = "$65.000 CLP",
-        esPasteleria = true
-    ),
-    ProductoCatalogo(
-        id = 2,
-        nombre = "Coffee Break Ejecutivo Corporativo",
-        categoria = "Banquetería Corporativa",
-        precio = "$8.500 CLP / persona",
-        esPasteleria = false
-    ),
-    ProductoCatalogo(
-        id = 3,
-        nombre = "Cóctel Gourmet Lanzamiento & Seminarios",
-        categoria = "Banquetería Corporativa",
-        precio = "$12.900 CLP / persona",
-        esPasteleria = false
-    ),
-    ProductoCatalogo(
-        id = 4,
-        nombre = "Mesa Dulce & Mini Pastelería Artesanal",
-        categoria = "Pastelería Fina",
-        precio = "$9.500 CLP / persona",
-        esPasteleria = true
-    ),
-    ProductoCatalogo(
-        id = 5,
-        nombre = "Torta Milhojas Manjar Nuez Vallenar",
-        categoria = "Pastelería Fina",
-        precio = "$48.000 CLP",
-        esPasteleria = true
-    ),
-    ProductoCatalogo(
-        id = 6,
-        nombre = "Banquetería Integral Celebración Institucional",
-        categoria = "Banquetería Corporativa",
-        precio = "$18.500 CLP / persona",
-        esPasteleria = false
-    )
-)
-
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CatalogoScreen(
-    onNavigateNext: () -> Unit = {}
+    onCotizarEvento: () -> Unit,
+    onMisReservas: () -> Unit,
+    onCerrarSesion: () -> Unit,
+    viewModel: CatalogoViewModel = viewModel()
 ) {
-    Surface(
-        modifier = Modifier.fillMaxSize(),
-        color = MaterialTheme.colorScheme.background
-    ) {
+    val state by viewModel.uiState.collectAsState()
+    val usuario by Sesion.usuario.collectAsState()
+
+    Scaffold(
+        containerColor = MaterialTheme.colorScheme.background,
+        topBar = {
+            TopAppBar(
+                title = {
+                    Column {
+                        Text("Catálogo", fontWeight = FontWeight.Bold)
+                        usuario?.let {
+                            Text("Hola, ${it.nombre}", style = MaterialTheme.typography.bodySmall)
+                        }
+                    }
+                },
+                actions = {
+                    IconButton(onClick = onMisReservas) {
+                        Icon(Icons.Filled.CalendarMonth, contentDescription = "Mis reservas")
+                    }
+                    IconButton(onClick = onCerrarSesion) {
+                        Icon(Icons.AutoMirrored.Filled.Logout, contentDescription = "Cerrar sesión")
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                    titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                )
+            )
+        },
+        floatingActionButton = {
+            ExtendedFloatingActionButton(
+                onClick = onCotizarEvento,
+                icon = { Icon(Icons.Filled.Celebration, contentDescription = null) },
+                text = { Text("Cotizar evento") }
+            )
+        }
+    ) { padding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(16.dp)
+                .padding(padding)
         ) {
-            Text(
-                text = "Catálogo Paolicias.Sweet",
-                style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.primary
-            )
-            Text(
-                text = "Selecciona un producto o menú para configurar tu evento (máx. 100 asistentes)",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.secondary
-            )
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            LazyColumn(
-                modifier = Modifier.weight(1f),
-                contentPadding = PaddingValues(vertical = 8.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
+            LazyRow(
+                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                items(listaProductosEjemplo) { producto ->
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(16.dp),
-                        colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.surface
-                        ),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
-                    ) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(14.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(76.dp)
-                                    .clip(RoundedCornerShape(12.dp))
-                                    .background(MaterialTheme.colorScheme.primaryContainer),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(
-                                    imageVector = if (producto.esPasteleria) Icons.Default.Cake else Icons.Default.RestaurantMenu,
-                                    contentDescription = producto.nombre,
-                                    tint = MaterialTheme.colorScheme.primary,
-                                    modifier = Modifier.size(40.dp)
-                                )
-                            }
+                item {
+                    FilterChip(
+                        selected = state.categoriaSeleccionada == null,
+                        onClick = { viewModel.seleccionarCategoria(null) },
+                        label = { Text("Todos") }
+                    )
+                }
+                items(state.categorias) { categoria ->
+                    FilterChip(
+                        selected = categoria == state.categoriaSeleccionada,
+                        onClick = { viewModel.seleccionarCategoria(categoria) },
+                        label = { Text(categoria) }
+                    )
+                }
+            }
 
-                            Column(
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .padding(horizontal = 12.dp)
-                            ) {
-                                Text(
-                                    text = producto.categoria,
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.secondary
-                                )
-                                Text(
-                                    text = producto.nombre,
-                                    style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.SemiBold,
-                                    color = MaterialTheme.colorScheme.onSurface
-                                )
-                                Spacer(modifier = Modifier.height(4.dp))
-                                Text(
-                                    text = producto.precio,
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.primary
-                                )
-                            }
-
-                            Button(onClick = onNavigateNext) {
-                                Text(text = "Cotizar")
-                            }
-                        }
+            when {
+                state.cargando -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator()
+                }
+                state.productos.isEmpty() -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Text("No hay productos en esta categoría")
+                }
+                else -> LazyColumn(
+                    contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 96.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    items(state.productos, key = { it.id }) { producto ->
+                        ProductoCard(producto = producto, modifier = Modifier.animateItem())
                     }
                 }
             }
@@ -185,7 +116,60 @@ fun CatalogoScreen(
     }
 }
 
+/** Tarjeta de producto. Al tocarla se expande la descripcion con animacion. */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun CatalogoScreen(navController: NavController) {
-    CatalogoScreen(onNavigateNext = { navController.navigate(Rutas.CONFIGURAR_EVENTO) })
+private fun ProductoCard(producto: Producto, modifier: Modifier = Modifier) {
+    var expandido by rememberSaveable { mutableStateOf(false) }
+
+    Card(
+        onClick = { expandido = !expandido },
+        modifier = modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Column {
+            AsyncImage(
+                model = producto.imagenUrl,
+                contentDescription = producto.nombre,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(160.dp)
+                    .background(MaterialTheme.colorScheme.primaryContainer)
+            )
+            Column(
+                modifier = Modifier
+                    .padding(16.dp)
+                    .animateContentSize()
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        producto.nombre,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.weight(1f)
+                    )
+                    Text(
+                        Formato.clp(producto.precioBase),
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
+                Text(
+                    producto.categoria,
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.tertiary
+                )
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    producto.descripcion,
+                    style = MaterialTheme.typography.bodyMedium,
+                    maxLines = if (expandido) Int.MAX_VALUE else 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+        }
+    }
 }

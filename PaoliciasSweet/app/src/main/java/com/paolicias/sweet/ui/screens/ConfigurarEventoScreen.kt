@@ -1,250 +1,245 @@
 package com.paolicias.sweet.ui.screens
 
-import androidx.compose.animation.animateColorAsState
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.animateIntAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AccessTime
-import androidx.compose.material.icons.filled.CalendarMonth
-import androidx.compose.material.icons.filled.Description
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.EditNote
+import androidx.compose.material.icons.filled.Event
 import androidx.compose.material.icons.filled.Groups
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.DatePicker
-import androidx.compose.material3.DatePickerDialog
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.rememberDatePickerState
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.material.icons.filled.Schedule
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
-import androidx.navigation.NavController
-import com.paolicias.sweet.navigation.Rutas
+import com.paolicias.sweet.ui.components.CampoSelector
 import com.paolicias.sweet.ui.components.CampoValidado
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
-import java.util.TimeZone
+import com.paolicias.sweet.ui.components.MensajeError
+import com.paolicias.sweet.util.Formato
+import com.paolicias.sweet.util.Validadores
+import com.paolicias.sweet.viewmodel.EventoViewModel
+import java.time.ZoneOffset
+import kotlin.math.roundToInt
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ConfigurarEventoScreen(
-    onNavigateNext: () -> Unit = {}
+    viewModel: EventoViewModel,
+    onVolver: () -> Unit,
+    onReservaGuardada: () -> Unit
 ) {
-    var fechaEvento by remember { mutableStateOf("15/11/2026") }
-    var mostrarDatePicker by remember { mutableStateOf(false) }
-    val datePickerState = rememberDatePickerState()
+    val state by viewModel.uiState.collectAsState()
+    var mostrarCalendario by rememberSaveable { mutableStateOf(false) }
 
-    var bloqueHorario by remember { mutableStateOf("10:00 - 14:00 hrs (Mañana)") }
-    var asistentes by remember { mutableStateOf("50") }
-    var observaciones by remember { mutableStateOf("2 menús aptos para celíacos y 3 vegetarianos") }
+    LaunchedEffect(state.eventoGuardadoId) {
+        if (state.eventoGuardadoId != null) {
+            onReservaGuardada()
+            viewModel.consumirGuardado()
+        }
+    }
 
-    var errorFecha by remember { mutableStateOf<String?>(null) }
-    var errorHorario by remember { mutableStateOf<String?>(null) }
-    var errorAsistentes by remember { mutableStateOf<String?>(null) }
-    var errorObservaciones by remember { mutableStateOf<String?>(null) }
-
-    val tieneErrores = errorFecha != null || errorHorario != null || errorAsistentes != null || errorObservaciones != null
-    val colorBotonCotizar by animateColorAsState(
-        targetValue = if (tieneErrores) Color(0xFFC62828) else MaterialTheme.colorScheme.primary,
-        label = "colorBotonCotizar"
-    )
-
-    if (mostrarDatePicker) {
-        DatePickerDialog(
-            onDismissRequest = { mostrarDatePicker = false },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        datePickerState.selectedDateMillis?.let { millis ->
-                            val formatter = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
-                            formatter.timeZone = TimeZone.getTimeZone("UTC")
-                            fechaEvento = formatter.format(Date(millis))
-                            errorFecha = null
-                        }
-                        mostrarDatePicker = false
+    Scaffold(
+        containerColor = MaterialTheme.colorScheme.background,
+        topBar = {
+            TopAppBar(
+                title = { Text("Configura tu evento", fontWeight = FontWeight.Bold) },
+                navigationIcon = {
+                    IconButton(onClick = onVolver) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Volver")
                     }
-                ) {
-                    Text("Confirmar")
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                    titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                )
+            )
+        }
+    ) { padding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .verticalScroll(rememberScrollState())
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            // Fecha
+            CampoSelector(
+                etiqueta = "Fecha del evento",
+                valor = state.fecha?.let { Formato.fecha(it) } ?: "",
+                icono = Icons.Filled.Event,
+                error = state.fechaError,
+                onClick = { mostrarCalendario = true }
+            )
+
+            // Horario
+            Column {
+                TituloSeccion("Bloque horario", Icons.Filled.Schedule)
+                EventoViewModel.BLOQUES_HORARIO.forEach { bloque ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .selectable(
+                                selected = state.horario == bloque,
+                                onClick = { viewModel.onHorarioChange(bloque) },
+                                role = Role.RadioButton
+                            )
+                            .padding(vertical = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        RadioButton(selected = state.horario == bloque, onClick = null)
+                        Spacer(Modifier.width(8.dp))
+                        Text(bloque, style = MaterialTheme.typography.bodyLarge)
+                    }
                 }
+                MensajeError(error = state.horarioError)
+            }
+
+            // Asistentes
+            Column {
+                TituloSeccion("Asistentes: ${state.asistentes} personas", Icons.Filled.Groups)
+                Slider(
+                    value = state.asistentes.toFloat(),
+                    onValueChange = {
+                        val nuevo = it.roundToInt()
+                        if (nuevo != state.asistentes) viewModel.onAsistentesChange(nuevo)
+                    },
+                    valueRange = Validadores.ASISTENTES_MIN.toFloat()..Validadores.ASISTENTES_MAX.toFloat(),
+                    steps = 8
+                )
+                Row(Modifier.fillMaxWidth()) {
+                    Text("${Validadores.ASISTENTES_MIN}", style = MaterialTheme.typography.bodySmall, modifier = Modifier.weight(1f))
+                    Text("${Validadores.ASISTENTES_MAX}", style = MaterialTheme.typography.bodySmall)
+                }
+                MensajeError(error = state.asistentesError)
+            }
+
+            // Observaciones
+            CampoValidado(
+                valor = state.observaciones,
+                onValorChange = viewModel::onObservacionesChange,
+                etiqueta = "Observaciones o alergias (opcional)",
+                icono = Icons.Filled.EditNote,
+                error = null,
+                singleLine = false,
+                minLines = 3,
+                mostrarValido = false
+            )
+
+            // Cotizacion
+            TarjetaCotizacion(
+                asistentes = state.asistentes,
+                tarifaPorPersona = state.tarifaPorPersona,
+                total = state.total,
+                abono = state.abono
+            )
+
+            AnimatedVisibility(visible = state.errorGeneral != null) {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer)
+                ) {
+                    Text(
+                        state.errorGeneral ?: "",
+                        modifier = Modifier.padding(12.dp),
+                        color = MaterialTheme.colorScheme.onErrorContainer
+                    )
+                }
+            }
+
+            Button(
+                onClick = viewModel::guardarReserva,
+                enabled = !state.guardando,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(52.dp)
+            ) {
+                AnimatedContent(targetState = state.guardando, label = "botonReserva") { guardando ->
+                    if (guardando) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(22.dp),
+                            strokeWidth = 2.dp,
+                            color = MaterialTheme.colorScheme.onPrimary
+                        )
+                    } else {
+                        Text("Confirmar reserva")
+                    }
+                }
+            }
+        }
+    }
+
+    if (mostrarCalendario) {
+        val datePickerState = rememberDatePickerState(
+            initialSelectedDateMillis = state.fecha?.atStartOfDay(ZoneOffset.UTC)?.toInstant()?.toEpochMilli()
+        )
+        DatePickerDialog(
+            onDismissRequest = { mostrarCalendario = false },
+            confirmButton = {
+                TextButton(onClick = {
+                    viewModel.onFechaSeleccionada(datePickerState.selectedDateMillis)
+                    mostrarCalendario = false
+                }) { Text("Aceptar") }
             },
             dismissButton = {
-                TextButton(onClick = { mostrarDatePicker = false }) {
-                    Text("Cancelar")
-                }
+                TextButton(onClick = { mostrarCalendario = false }) { Text("Cancelar") }
             }
         ) {
             DatePicker(state = datePickerState)
         }
     }
-
-    Surface(
-        modifier = Modifier.fillMaxSize(),
-        color = MaterialTheme.colorScheme.background
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .verticalScroll(rememberScrollState())
-                .padding(20.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp)
-        ) {
-            Text(
-                text = "Configurar Evento",
-                style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.primary
-            )
-            Text(
-                text = "Completa los parámetros de tu evento y restricciones alimentarias",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.secondary
-            )
-
-            CampoValidado(
-                valor = fechaEvento,
-                onCambio = {
-                    fechaEvento = it
-                    errorFecha = if (it.isBlank()) "Selecciona o ingresa una fecha válida" else null
-                },
-                etiqueta = "Fecha del Evento (DatePicker)",
-                error = errorFecha,
-                icono = Icons.Default.CalendarMonth,
-                trailingIcon = {
-                    IconButton(onClick = { mostrarDatePicker = true }) {
-                        Icon(
-                            imageVector = Icons.Default.CalendarMonth,
-                            contentDescription = "Abrir calendario"
-                        )
-                    }
-                }
-            )
-
-            Button(
-                onClick = { mostrarDatePicker = true },
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text(text = "Seleccionar Fecha en Calendario")
-            }
-
-            CampoValidado(
-                valor = bloqueHorario,
-                onCambio = {
-                    bloqueHorario = it
-                    errorHorario = if (it.isBlank()) "El bloque horario es obligatorio" else null
-                },
-                etiqueta = "Bloque Horario",
-                error = errorHorario,
-                icono = Icons.Default.AccessTime
-            )
-
-            CampoValidado(
-                valor = asistentes,
-                onCambio = {
-                    asistentes = it
-                    val num = it.toIntOrNull()
-                    errorAsistentes = when {
-                        num == null -> "Ingresa un número válido de asistentes"
-                        num < 10 || num > 100 -> "La capacidad debe ser entre 10 y 100 personas"
-                        else -> null
-                    }
-                },
-                etiqueta = "Cantidad de Asistentes (10 a 100)",
-                error = errorAsistentes,
-                icono = Icons.Default.Groups,
-                keyboardType = KeyboardType.Number
-            )
-
-            CampoValidado(
-                valor = observaciones,
-                onCambio = {
-                    observaciones = it
-                    errorObservaciones = if (it.isBlank()) "Indica alergias/restricciones o escribe 'Sin restricciones'" else null
-                },
-                etiqueta = "Observaciones y Restricciones Alimentarias",
-                error = errorObservaciones,
-                icono = Icons.Default.Description,
-                singleLine = false
-            )
-
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.primaryContainer
-                )
-            ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Text(
-                        text = "Total Cotizado (Tarifa Escalonada):",
-                        style = MaterialTheme.typography.titleSmall,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer
-                    )
-                    Text(
-                        text = "$645.000 CLP",
-                        style = MaterialTheme.typography.headlineSmall,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer
-                    )
-                    Text(
-                        text = "Abono 50% requerido para bloquear fecha: $322.500 CLP",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(4.dp))
-
-            Button(
-                onClick = {
-                    val num = asistentes.toIntOrNull()
-                    errorFecha = if (fechaEvento.isBlank()) "Selecciona una fecha" else null
-                    errorHorario = if (bloqueHorario.isBlank()) "Ingresa el bloque horario" else null
-                    errorAsistentes = if (num == null || num < 10 || num > 100) "Capacidad permitida: 10 a 100 asistentes" else null
-                    errorObservaciones = if (observaciones.isBlank()) "Indica restricciones o 'Sin restricciones'" else null
-
-                    if (errorFecha == null && errorHorario == null && errorAsistentes == null && errorObservaciones == null) {
-                        onNavigateNext()
-                    }
-                },
-                colors = ButtonDefaults.buttonColors(containerColor = colorBotonCotizar),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(50.dp)
-            ) {
-                Text(
-                    text = if (tieneErrores) "Corrige los campos en rojo" else "Ver Resumen de Cotización",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.White
-                )
-            }
-        }
-    }
 }
 
 @Composable
-fun ConfigurarEventoScreen(navController: NavController) {
-    ConfigurarEventoScreen(onNavigateNext = { navController.navigate(Rutas.RESUMEN) })
+private fun TituloSeccion(texto: String, icono: ImageVector) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Icon(icono, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+        Spacer(Modifier.width(8.dp))
+        Text(texto, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+    }
+}
+
+/** Cotizacion en tiempo real; el total y el abono se animan al cambiar. */
+@Composable
+private fun TarjetaCotizacion(asistentes: Int, tarifaPorPersona: Int, total: Int, abono: Int) {
+    val totalAnimado by animateIntAsState(targetValue = total, animationSpec = tween(500), label = "total")
+    val abonoAnimado by animateIntAsState(targetValue = abono, animationSpec = tween(500), label = "abono")
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
+    ) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text("Cotización", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            Text(
+                "$asistentes personas × ${Formato.clp(tarifaPorPersona)} por persona",
+                style = MaterialTheme.typography.bodyMedium
+            )
+            HorizontalDivider(Modifier.padding(vertical = 8.dp))
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text("Total", style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
+                Text(
+                    Formato.clp(totalAnimado),
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text("Abono 50% para reservar", style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
+                Text(Formato.clp(abonoAnimado), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            }
+        }
+    }
 }
