@@ -53,6 +53,12 @@ interface EventoDao {
     @Query("SELECT * FROM eventos ORDER BY fecha")
     fun observarTodos(): Flow<List<Evento>>
 
+    @Query("SELECT * FROM eventos WHERE id = :id")
+    fun observarPorId(id: Int): Flow<Evento?>
+
     @Query("UPDATE eventos SET estadoAbono = :estado WHERE id = :id")
     suspend fun actualizarEstado(id: Int, estado: String)
+
+    @Query("UPDATE eventos SET comprobanteUri = :uri WHERE id = :id")
+    suspend fun actualizarComprobante(id: Int, uri: String)
 }
