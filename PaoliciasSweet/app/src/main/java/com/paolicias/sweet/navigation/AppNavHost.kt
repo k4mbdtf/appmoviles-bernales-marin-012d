@@ -1,6 +1,12 @@
 package com.paolicias.sweet.navigation
 
+import android.Manifest
+import android.os.Build
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
@@ -13,6 +19,8 @@ import com.paolicias.sweet.ui.screens.ConfigurarEventoScreen
 import com.paolicias.sweet.ui.screens.LoginScreen
 import com.paolicias.sweet.ui.screens.MisReservasScreen
 import com.paolicias.sweet.ui.screens.ResumenScreen
+import com.paolicias.sweet.util.Formato
+import com.paolicias.sweet.util.Notificaciones
 import com.paolicias.sweet.util.Sesion
 import com.paolicias.sweet.viewmodel.EventoViewModel
 
@@ -20,8 +28,21 @@ import com.paolicias.sweet.viewmodel.EventoViewModel
 fun AppNavHost(
     navController: NavHostController = rememberNavController()
 ) {
+    val context = LocalContext.current
+
     // Compartido entre ConfigurarEvento y Resumen (vive a nivel de la Activity)
     val eventoViewModel: EventoViewModel = viewModel()
+
+    // Permiso de notificaciones en tiempo de ejecucion (Android 13+)
+    val permisoNotificaciones = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { /* Si lo niega, la app sigue funcionando sin avisos */ }
+
+    LaunchedEffect(Unit) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && !Notificaciones.tienePermiso(context)) {
+            permisoNotificaciones.launch(Manifest.permission.POST_NOTIFICATIONS)
+        }
+    }
 
     fun cerrarSesion() {
         Sesion.cerrar()
@@ -59,6 +80,15 @@ fun AppNavHost(
                 viewModel = eventoViewModel,
                 onVolver = { navController.popBackStack() },
                 onReservaGuardada = {
+                    val estado = eventoViewModel.uiState.value
+                    estado.eventoGuardadoId?.let { id ->
+                        Notificaciones.nuevaReserva(
+                            context = context,
+                            eventoId = id,
+                            fecha = estado.fecha?.let { Formato.fecha(it) } ?: "",
+                            total = estado.total
+                        )
+                    }
                     navController.navigate(Rutas.RESUMEN) {
                         popUpTo(Rutas.CATALOGO)
                     }
@@ -78,12 +108,12 @@ fun AppNavHost(
         }
         composable(Rutas.MIS_RESERVAS) {
             MisReservasScreen(
-                onNavigateNext = { navController.navigate(Rutas.AGENDA) }
+                onVolver = { navController.popBackStack() }
             )
         }
         composable(Rutas.AGENDA) {
             AgendaScreen(
-                onNavigateNext = { cerrarSesion() }
+                onCerrarSesion = { cerrarSesion() }
             )
         }
     }
